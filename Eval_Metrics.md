@@ -31,6 +31,7 @@ Immo_ML is a machine learning project aimed at predicting real estate prices bas
   - **Primary Features:**
     - Bedrooms
     - Property Type
+    - Postal Code
     - Facades
     - Terrace
     - Terrace Surface
