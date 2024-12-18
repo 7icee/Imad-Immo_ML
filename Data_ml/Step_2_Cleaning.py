@@ -1,107 +1,84 @@
-# Import libraries
+# app.py
+
+import streamlit as st
+import joblib
 import pandas as pd
 import numpy as np
 
-# A class for cleaning and preprocessing a dataset
-class DataCleaning:
+# Load the saved model and scaler
+model = joblib.load('linear_regression_model.pkl')
+scaler = joblib.load('scaler.pkl')
 
-    # Initializes the DataCleaning class with a file path and loads the data
-    def __init__(self, filepath: str):
-        
-        self.filepath = filepath
-        self.data = pd.read_csv(filepath)
+# Function to map building states to numerical values
+def encode_building_state(state):
+    state_mapping = {
+        'GOOD': 1,
+        'AS_NEW': 2,
+        'TO_RENOVATE': 3,
+        'TO_BE_DONE_UP': 4,
+        'JUST_RENOVATED': 5,
+        'TO_RESTORE': 6,
+        'UNKNOWN': 0
+    }
+    return state_mapping.get(state, 0)  # Default to 'UNKNOWN' if not found
 
-    # Drops irrelevant columns
-    def drop_irrelevant(self):
-        
-        irrelevant_columns = [
-            'house_index', 'url', 'property_subtype', 'locality', 'street', 'number',
-            'box', 'furnished', 'fireplace', 'fireplaceCount', 'landSurface',
-            'province', 'typeOfSale'
-        ]
-        self.data = self.data.drop(columns=[col for col in irrelevant_columns if col in self.data.columns])
+# Function to map property types to numerical values
+def encode_property_type(property_type):
+    property_type_mapping = {
+        'HOUSE': 0,
+        'APARTMENT': 1
+    }
+    return property_type_mapping.get(property_type, -1)  # Default to -1 if not found
 
-    # Fills missing values in a specified column with zero
-    def fill_empty_with_zero(self, column_name: str):
+# Function to make predictions
+def predict_price(features):
+    # Scale the features
+    scaled_features = scaler.transform([features])
+    # Make prediction
+    price_prediction = model.predict(scaled_features)
+    return price_prediction[0]
 
-        self.data[column_name] = self.data[column_name].fillna(0)
+# Streamlit app title
+st.title("House Price Prediction")
 
+# User input for features
+st.sidebar.header("Input Features")
 
-    # Drops rows where the specified column has missing values
-    def drop_rows_with_empty(self, column_name: str):
+# User inputs
+bedrooms = st.sidebar.number_input("Bedrooms", min_value=1, max_value=10)
+property_type_input = st.sidebar.selectbox("Property Type", options=["HOUSE", "APARTMENT"])
+postal_code = st.sidebar.text_input("Postal Code")
+facades = st.sidebar.number_input("Facades", min_value=0, max_value=10)
+terrace = st.sidebar.number_input("Terrace (Yes=1, No=0)", min_value=0, max_value=1)
+terrace_surface = st.sidebar.number_input("Terrace Surface (m²)")
+building_state_input = st.sidebar.selectbox("Building State", options=["GOOD", "AS_NEW", "TO_RENOVATE", "TO_BE_DONE_UP", "JUST_RENOVATED", "TO_RESTORE", "UNKNOWN"])
+garden = st.sidebar.number_input("Garden (Yes=1, No=0)", min_value=0, max_value=1)
+garden_surface = st.sidebar.number_input("Garden Surface (m²)")
+pool = st.sidebar.number_input("Pool (Yes=1, No=0)", min_value=0, max_value=1)
+living_area = st.sidebar.number_input("Living Area (m²)")
+surface_of_the_plot = st.sidebar.number_input("Surface of the Plot (m²)")
+wealth_index = st.sidebar.number_input("Wealth Index", min_value=0.0)
+density = st.sidebar.number_input("Density", min_value=0.0)
 
-        self.data = self.data.dropna(subset=[column_name])
+# Collect user input into a list and encode categorical variables
+input_features = [
+    bedrooms,
+    encode_property_type(property_type_input),  # Encoding property type
+    postal_code,  # Assuming postal_code is not used directly; consider encoding it if needed
+    facades,
+    terrace,
+    terrace_surface,
+    encode_building_state(building_state_input),  # Encoding building state
+    garden,
+    garden_surface,
+    pool,
+    living_area,
+    surface_of_the_plot,
+    wealth_index,
+    density
+]
 
-    # Fills missing values in a specified column with the mode   
-    def fill_with_mode(self, column_name: str):
-
-        mean_value = self.data[column_name].mode()[0]
-        self.data[column_name] = self.data[column_name].fillna(mean_value)
-
-    # Encodes the 'buildingState' column with numerical values
-    def process_building_state(self):
-
-        self.data['buildingState'] = self.data['buildingState'].fillna('UNKNOWN')
-        self.data['buildingState'] = self.data['buildingState'].map({
-            'GOOD': 1,
-            'AS_NEW': 2,
-            'TO_RENOVATE': 3,
-            'TO_BE_DONE_UP': 4,
-            'JUST_RENOVATED': 5,
-            'TO_RESTORE': 6,
-            'UNKNOWN': 0
-        })
-    
-    # Encodes the 'property_type' column with numerical values
-    def process_property_type(self):
-
-        self.data['property_type'] = self.data['property_type'].map({
-            'HOUSE': 0,
-            'APARTMENT': 1
-        })
-
-    # Converts all numeric columns in the dataset to integers    
-    def convert_numbers_to_int(self):
-
-        numeric_cols = self.data.select_dtypes(include=[np.number]).columns
-        self.data[numeric_cols] = self.data[numeric_cols].astype(int)
-
-    # Performs all the cleaning and preprocessing steps
-    def process(self):
-
-        # Drop irrelevant columns
-        self.drop_irrelevant()
-
-        # Fill specified columns with zero
-        columns_to_fill = ['gardenSurface', 'terraceSurface', 'surfaceOfThePlot']
-        for column in columns_to_fill:
-            if column in self.data.columns:
-                self.fill_empty_with_zero(column)
-
-        # Drop rows where certain columns have missing values
-        rows_to_drop = ['livingArea', 'INS Code', 'Population', 'Wealth_Index', 'Density', 'price']
-        for column in rows_to_drop:
-            if column in self.data.columns:
-                self.drop_rows_with_empty(column)
-        
-        # Fill missing values in 'facades' column with the mode
-        self.fill_with_mode("facades")
-
-        # Process the 'buildingState' and 'property_type' column
-        self.process_building_state()
-        self.process_property_type()
-
-        # Convert numeric columns to integers
-        self.convert_numbers_to_int()
-
-        return self.data
-
-
-if __name__ == "__main__":
-
-    # Define the dataset file path and run the process
-    dataset_path = "Step_2_Dataset.csv"
-    processed_data = DataCleaning(dataset_path).process()
-
-    # Save the cleaned dataset to a new CSV file.
-    processed_data.to_csv("Step_3_Processed_Dataset.csv", index=False)
+# Make a prediction button
+if st.sidebar.button("Predict Price"):
+    predicted_price = predict_price(input_features)
+    st.write(f"**Predicted Price:** ${predicted_price:,.2f}")

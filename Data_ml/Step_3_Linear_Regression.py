@@ -11,6 +11,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import math
+import joblib
 
 # Load the processed dataset
 data = pd.read_csv("Step_3_Processed_Dataset.csv")
@@ -36,11 +37,6 @@ data = remove_outliers_iqr(data, 'price')
 # Remove outliers from the 'livingArea' column
 data = remove_outliers_iqr(data, 'livingArea')
 
-# Apply KMeans clustering to segment the dataset into two groups
-kmeans = KMeans(n_clusters=2)
-kmeans.fit(data)
-data['cust_type'] = kmeans.labels_
-
 # Define features (X) and target (y)
 X = data.drop(columns=['price'])
 y = data['price']
@@ -57,6 +53,10 @@ X_test_scaled = scaler.transform(X_test)
 model = LinearRegression()
 print(f"Model: {model}")
 model.fit(X_train_scaled, y_train)
+
+# Save the model and scaler
+joblib.dump(model, 'Step_4_Linear_Regression_Model.pkl')
+joblib.dump(scaler, 'Step_4_Scaler.pkl')
 
 # Predictions on training and test sets
 y_train_pred = model.predict(X_train_scaled)
@@ -93,12 +93,25 @@ print(f"MAPE (Training): {mape_train:.2f}%, MAPE (Test): {mape_test:.2f}%")
 print(f"sMAPE (Training): {smape_train:.2f}%, sMAPE (Test): {smape_test:.2f}%")
 
 # Perform K-Fold Cross-Validation
-k = 5  # Number of folds
-scores = cross_val_score(model, X, y, cv=k, scoring='r2')  # Use R² for regression models
+k = 5
+scores = cross_val_score(model, X, y, cv=k, scoring='r2')
 
 # Print the results
 print(f"Cross-Validation Scores: {scores}")
 print(f"Mean CV Score: {np.mean(scores)}")
+
+# Print Number of features used in the model
+print(f"Number of features used in the model: {X_train_scaled.shape[1]}")
+
+# Calculate feature importance as percentages
+feature_importance = np.abs(model.coef_)
+total_importance = np.sum(feature_importance)
+percentage_importance = (feature_importance / total_importance) * 100
+
+# Display feature importance in percentages
+print("Feature Importance (%):")
+for feature, importance in zip(X.columns, percentage_importance):
+    print(f"{feature}: {importance:.2f}%")
 
 # # Print model type and parameters
 # print("Model Type:", type(model).__name__)

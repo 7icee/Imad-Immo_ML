@@ -10,7 +10,7 @@ postal_data = pd.read_excel('Step_1_Postal_Data.xlsx')
 postal_data_dict = postal_data.set_index('Code_INS')[['Population', 'Wealth_Index', 'Density']].to_dict(orient='index')
 
 # Load the mapping of Code_INS to postal codes from a JSON file
-with open('Step_1_Code_INS_to_Postal.json', 'r') as json_file:
+with open('Step_0_Code_INS_to_Postal.json', 'r') as json_file:
     ins_to_postal = json.load(json_file)
 
 # Define a function to link the 'Code INS' based on the postal codes
