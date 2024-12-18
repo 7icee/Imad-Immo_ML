@@ -5,7 +5,7 @@ import numpy as np
 
 # Load the saved model, scaler, and additional data
 model = joblib.load('Data_ml\Step_4_Linear_Regression_Model.pkl')
-scaler = joblib.load('Step_4_Scaler.pkl')
+scaler = joblib.load('Data_ml\Step_4_Scaler.pkl')
 wealth_and_density_data = pd.read_excel('Step_4_Postal_Codes_Data.xlsx')
 
 # Function to retrieve wealth index and density based on postal code
